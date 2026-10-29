@@ -1,0 +1,25 @@
+appId: com.todomaster.app
+---
+# 1. Launch Native App
+- launchApp
+
+# 2. Assert Header is visible
+- assertVisible: "Tasks & Priorities"
+
+# 3. Tap FAB (+) to open Create Task Modal
+- tapOn: "+"
+- assertVisible: "Create New Task"
+
+# 4. Enter Task Title
+- tapOn:
+    below: "TASK TITLE *"
+- inputText: "Native APK Maestro Verified"
+
+# 5. Tap modal header to dismiss keyboard cleanly without hardware back
+- tapOn: "Create New Task"
+
+# 6. Tap Create Task button
+- tapOn: "Create Task"
+
+# 7. Verify the new task is created and displayed on screen
+- assertVisible: "Native APK Maestro Verified"
