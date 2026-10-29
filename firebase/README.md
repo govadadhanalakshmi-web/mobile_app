@@ -56,3 +56,4 @@ gcloud firebase test android run \
   --device model=oriole,version=31 \
   --timeout 3m
 ```
+

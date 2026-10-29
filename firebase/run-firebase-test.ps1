@@ -27,3 +27,4 @@ gcloud firebase test android run `
   --timeout 3m
 
 Write-Host "Firebase Test Lab execution finished." -ForegroundColor Green
+
