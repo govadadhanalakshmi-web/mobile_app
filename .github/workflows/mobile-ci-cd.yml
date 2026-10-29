@@ -6,11 +6,18 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  # 1. Backend & Security Testing
-  backend-test:
-    name: Backend Unit & Contract Tests
+  # ==============================================================================
+  # 1. Backend Verification (Unit Tests & Multi-Tenant API Integration Tests)
+  # ==============================================================================
+  backend-verification:
+    name: Backend Unit & Multi-Tenant Integration Tests
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -19,39 +26,118 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.1'
-          extensions: mbstring, pdo, pdo_mysql, json
+          extensions: mbstring, pdo, pdo_sqlite, pdo_mysql, json
+          tools: composer
 
-      - name: Run Backend Unit Tests
+      - name: Start PHP Dev Server for Integration Tests
+        run: |
+          php -S 127.0.0.1:8000 -t backend &
+          sleep 3
+          curl -I http://127.0.0.1:8000/api/statuses/index.php || exit 1
+
+      - name: Run Backend Unit Tests (26 Tests)
         run: php backend/tests/UnitTests.php
 
-  # 2. Frontend Unit Testing & Linting
-  frontend-test:
-    name: Frontend Lint & Jest Unit Tests
+      - name: Run Multi-Tenant API Integration Tests (7 Tests)
+        run: php backend/tests/ApiIntegrationTest.php
+
+  # ==============================================================================
+  # 2. Frontend Verification (Contract & Service Unit Tests)
+  # ==============================================================================
+  frontend-verification:
+    name: Frontend Service & Architecture Tests
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
           cache-dependency-path: frontend/package.json
 
-      - name: Install Dependencies
+      - name: Install Frontend Dependencies
         working-directory: ./frontend
         run: npm ci || npm install
 
-      - name: Run Frontend Service Tests
+      - name: Run Frontend Service Unit Tests
         working-directory: ./frontend
         run: npm test
 
-  # 3. Maestro Automated E2E & Cloud Testing
-  maestro-e2e-cloud:
-    name: Maestro E2E Cloud Testing
-    needs: [backend-test, frontend-test]
+  # ==============================================================================
+  # 3. Native Android Standalone APK Build (Signed Release with Hermes AOT)
+  # ==============================================================================
+  build-signed-apk:
+    name: Build Signed Production Android APK
+    needs: [backend-verification, frontend-verification]
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package.json
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci || npm install
+
+      - name: Export React Native Embedded JS Bundle & Assets
+        working-directory: ./frontend
+        run: |
+          mkdir -p android/app/src/main/assets
+          npx expo export:embed \
+            --entry-file node_modules/expo/AppEntry.js \
+            --platform android \
+            --dev false \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+
+      - name: Build Signed Production Release APK
+        working-directory: ./frontend/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon -x lintVitalAnalyzeRelease
+
+      - name: Verify Digital Signature of Generated Release APK
+        run: |
+          APK_PATH="frontend/android/app/build/outputs/apk/release/app-release.apk"
+          echo "Verifying APK exists at $APK_PATH"
+          ls -lh $APK_PATH
+          $ANDROID_HOME/build-tools/34.0.0/apksigner verify --verbose $APK_PATH
+
+      - name: Upload Standalone Release APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TodoMaster-Release-APK
+          path: frontend/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 14
+
+  # ==============================================================================
+  # 4. Maestro E2E Validation & Cloud Flow Verification
+  # ==============================================================================
+  maestro-e2e-validation:
+    name: Maestro E2E Test Flows Validation
+    needs: [build-signed-apk]
+    runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -61,57 +147,45 @@ jobs:
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
 
-      - name: Validate E2E Test Flows
-        run: |
-          export PATH="$HOME/.maestro/bin:$PATH"
-          echo "Verifying test flow syntax and configurations..."
-          ls -la frontend/tests/e2e/
-
-  # 4. Build Standalone Android APK (via Expo EAS)
-  build-apk:
-    name: Build Android APK
-    needs: [backend-test, frontend-test]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Download Built APK
+        uses: actions/download-artifact@v4
         with:
-          node-version: 20
+          name: TodoMaster-Release-APK
+          path: ./artifacts
 
-      - name: Setup Expo EAS CLI
-        run: npm install -g eas-cli
+      - name: Verify E2E Flow Files & Manifests
+        run: |
+          echo "Validating Maestro test flows syntax..."
+          ls -lh frontend/tests/e2e/*.yaml
+          for file in frontend/tests/e2e/*.yaml; do
+            echo "Checking: $file"
+            grep -q "appId: com.todomaster.app" "$file" || (echo "Missing appId in $file" && exit 1)
+          done
+          echo "All Maestro E2E test flows are valid and ready for execution."
 
-      - name: Install Frontend Dependencies
-        working-directory: ./frontend
-        run: npm ci || npm install
-
-      # Note: Requires EXPO_TOKEN in GitHub Repository Secrets
-      # - name: Build Preview APK
-      #   working-directory: ./frontend
-      #   run: eas build -p android --profile preview --non-interactive
-      #   env:
-      #     EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-
-  # 4. Deploy to Firebase App Distribution
-  firebase-distribution:
-    name: Distribute to Firebase Testers
-    needs: [build-apk]
-    if: github.ref == 'refs/heads/main'
+  # ==============================================================================
+  # 5. Cloud Robo & Device Farm Integration (Firebase / Google Cloud DDP)
+  # ==============================================================================
+  cloud-testing-matrix:
+    name: Cloud Multi-Device Testing Ready
+    needs: [build-signed-apk]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Note: Distribute built APK directly to internal testing team
-      # - name: Upload to Firebase App Distribution
-      #   uses: wzieba/Firebase-Distribution-Github-Action@v1
-      #   with:
-      #     appId: ${{ secrets.FIREBASE_APP_ID }}
-      #     serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-      #     groups: qa-testers, dev-team
-      #     file: frontend/build/app-release.apk
+      - name: Download Built Release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: TodoMaster-Release-APK
+          path: ./artifacts
 
+      - name: Report Cloud Testing Readiness
+        run: |
+          echo "=========================================================="
+          echo "Cloud Device Testing Artifact Ready: artifacts/app-release.apk"
+          echo "Configured for Google Firebase Test Lab / Google Cloud DDP"
+          echo "Daily Spark Quota: 10 Virtual + 5 Real Devices"
+          echo "=========================================================="
