@@ -1,0 +1,31 @@
+appId: com.android.chrome
+---
+# 1. Cancel existing modal if open
+- tapOn:
+    text: "Cancel"
+    optional: true
+
+# 2. Tap on "Pending" filter tab
+- tapOn: "Pending"
+
+# 3. Tap on "In Progress" filter tab
+- tapOn: "In Progress"
+
+# 4. Open Create Task modal
+- tapOn: "+"
+- assertVisible: "Create New Task"
+
+# 5. Type Task Title
+- tapOn:
+    point: "50%, 57%"
+- inputText: "Live CLI Mobile Test"
+
+# 6. Hide soft keyboard
+- back
+
+# 7. Save Task
+- tapOn: "Create Task"
+
+# 8. Verify the new task is created
+- assertVisible: "Live CLI Mobile Test"
+

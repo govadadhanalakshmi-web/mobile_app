@@ -1,0 +1,27 @@
+appId: com.android.chrome
+---
+# Step 1: Ensure clean state
+- tapOn:
+    text: "Cancel"
+    optional: true
+
+# Step 2: Tab navigation demo
+- tapOn: "In Progress"
+- tapOn: "Completed"
+
+# Step 3: Open Create Task modal
+- tapOn: "+"
+- assertVisible: "Create New Task"
+
+# Step 4: Type Task Title
+- tapOn:
+    point: "50%, 57%"
+- inputText: "Live CLI AI Demo Task"
+
+# Step 5: Dismiss keyboard and Save
+- back
+- tapOn: "Create Task"
+
+# Step 6: Verify creation
+- assertVisible: "Live CLI AI Demo Task"
+

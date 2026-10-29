@@ -1,0 +1,33 @@
+appId: com.android.chrome
+---
+# ==========================================
+# Maestro Studio GUI Automation Test Flow
+# ==========================================
+
+# 1. Filter Tabs Testing: Pending ట్యాబ్‌పై క్లిక్ చేయడం
+- tapOn: "Pending"
+
+# 2. In Progress ట్యాబ్‌పై క్లిక్ చేయడం
+- tapOn: "In Progress"
+
+# 3. All Tasks ట్యాబ్‌పై క్లిక్ చేసి అన్ని టాస్క్‌లను చూడటం
+- tapOn: "All Tasks"
+
+# 4. స్క్రీన్‌పై కింద ఉన్న '+' ఫ్లోటింగ్ బటన్‌పై క్లిక్ చేయడం
+- tapOn: "+"
+
+# 5. 'Create New Task' పాప్-అప్ మోడల్ వచ్చిందో లేదో వెరిఫై చేయడం
+- assertVisible: "Create New Task"
+
+# 6. Task Title ఇన్పుట్ బాక్స్‌లో క్లిక్ చేసి కొత్త టాస్క్ పేరు టైప్ చేయడం
+- tapOn:
+    point: "50%, 57%"
+- inputText: "GUI Interactive Test Task"
+
+# 7. కీబోర్డ్ క్లోజ్ చేసి 'Create Task' సేవ్ బటన్ క్లిక్ చేయడం
+- back
+- tapOn: "Create Task"
+
+# 8. కొత్త టాస్క్ హోమ్ స్క్రీన్‌పై సక్సెస్‌ఫుల్‌గా వచ్చిందో లేదో వెరిఫై చేయడం
+- assertVisible: "GUI Interactive Test Task"
+
