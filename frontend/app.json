@@ -12,6 +12,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.todomaster.app",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       }

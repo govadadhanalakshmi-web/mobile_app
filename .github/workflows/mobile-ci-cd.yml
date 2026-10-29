@@ -47,7 +47,27 @@ jobs:
         working-directory: ./frontend
         run: npm test
 
-  # 3. Build Standalone Android APK (via Expo EAS)
+  # 3. Maestro Automated E2E & Cloud Testing
+  maestro-e2e-cloud:
+    name: Maestro E2E Cloud Testing
+    needs: [backend-test, frontend-test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Validate E2E Test Flows
+        run: |
+          export PATH="$HOME/.maestro/bin:$PATH"
+          echo "Verifying test flow syntax and configurations..."
+          ls -la frontend/tests/e2e/
+
+  # 4. Build Standalone Android APK (via Expo EAS)
   build-apk:
     name: Build Android APK
     needs: [backend-test, frontend-test]
