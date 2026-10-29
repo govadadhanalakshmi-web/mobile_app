@@ -8,6 +8,8 @@ handleCorsHeaders();
 
 try {
     $pdo = getDatabaseConnection();
+    $user = authenticateUser($pdo);
+    $userId = (int)$user['id'];
 
     // Bounded pagination parameters (Performance rule: bounded queries)
     $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
@@ -17,9 +19,14 @@ try {
     $statusId = isset($_GET['status_id']) && $_GET['status_id'] !== '' ? (int)$_GET['status_id'] : null;
     $search = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
 
-    // Base WHERE conditions (Always enforce soft delete filter)
-    $whereClauses = ['t.is_deleted = 0'];
-    $params = [];
+    // Multi-tenant user isolation + soft delete filter
+    $whereClauses = [
+        't.user_id = :user_id',
+        't.is_deleted = 0'
+    ];
+    $params = [
+        ':user_id' => $userId
+    ];
 
     if ($statusId !== null && $statusId > 0) {
         $whereClauses[] = 't.status_id = :status_id';
@@ -35,6 +42,7 @@ try {
     $whereSql = implode(' AND ', $whereClauses);
 
     // 1. Get Total Count for Bounded Pagination
+    $startTime = microtime(true);
     $countSql = "SELECT COUNT(t.id) AS total_count FROM TodoItems t WHERE {$whereSql}";
     $countStmt = $pdo->prepare($countSql);
     foreach ($params as $key => $val) {
@@ -46,6 +54,7 @@ try {
     // 2. Fetch Paginated Records with Explicit Columns and JOINs (No SELECT *)
     $dataSql = "SELECT 
                     t.id,
+                    t.user_id,
                     t.title,
                     t.description,
                     t.status_id,
@@ -70,6 +79,8 @@ try {
     $stmt->execute();
     $todos = $stmt->fetchAll();
 
+    logQueryPerf('TodoItems.list', (microtime(true) - $startTime) * 1000);
+
     $totalPages = $totalCount > 0 ? (int)ceil($totalCount / $limit) : 0;
 
     sendSuccess('Todos retrieved successfully', [
@@ -84,4 +95,3 @@ try {
 } catch (Throwable $e) {
     handleApiException($e, 'Failed to fetch todos.');
 }
-

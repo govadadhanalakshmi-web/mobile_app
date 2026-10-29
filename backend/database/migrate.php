@@ -25,14 +25,14 @@ try {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
     ]);
 
-    echo "[1/3] Ensuring database `{$db}` exists with collation utf8mb4_0900_ai_ci...\n";
+    echo "[1/4] Ensuring database `{$db}` exists with collation utf8mb4_0900_ai_ci...\n";
     $serverPdo->exec("CREATE DATABASE IF NOT EXISTS `{$db}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;");
 
     // 2. Connect to the specific database
     $dbPdo = getDatabaseConnection();
 
     // 3. Read and execute schema.sql
-    echo "[2/3] Reading schema.sql and creating tables...\n";
+    echo "[2/4] Reading schema.sql and ensuring tables...\n";
     $schemaFile = __DIR__ . '/schema.sql';
     if (!file_exists($schemaFile)) {
         throw new RuntimeException("Schema file not found at: {$schemaFile}");
@@ -48,7 +48,22 @@ try {
         }
     }
 
-    echo "[3/3] Verifying created tables and lookup seeds...\n";
+    // 4. Ensure user_id column exists on TodoItems if upgraded from older schema
+    echo "[3/4] Checking and applying incremental schema migrations...\n";
+    $checkCol = $dbPdo->query("SHOW COLUMNS FROM `TodoItems` LIKE 'user_id'")->fetch();
+    if (!$checkCol) {
+        echo "  - Adding `user_id` column and foreign key to `TodoItems`...\n";
+        $dbPdo->exec("ALTER TABLE `TodoItems` ADD COLUMN `user_id` INT NOT NULL DEFAULT 1 AFTER `id`");
+        $dbPdo->exec("ALTER TABLE `TodoItems` ADD CONSTRAINT `fk_todo_items_user` FOREIGN KEY (`user_id`) REFERENCES `Users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE");
+        $dbPdo->exec("ALTER TABLE `TodoItems` ADD INDEX `idx_todo_items_user_id` (`user_id`)");
+    } else {
+        echo "  - Column `TodoItems.user_id`: OK\n";
+    }
+
+    echo "[4/4] Verifying created tables and lookup seeds...\n";
+    $userCount = $dbPdo->query("SELECT COUNT(id) FROM Users")->fetchColumn();
+    echo "  - Table `Users`: OK ({$userCount} registered users)\n";
+
     $statusCount = $dbPdo->query("SELECT COUNT(id) FROM TodoStatuses")->fetchColumn();
     echo "  - Table `TodoStatuses`: OK ({$statusCount} default statuses present)\n";
 
@@ -60,4 +75,3 @@ try {
     echo "\n[ERROR] Migration failed: " . $e->getMessage() . "\n";
     exit(1);
 }
-

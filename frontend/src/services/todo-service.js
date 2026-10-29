@@ -2,7 +2,7 @@ import { ENDPOINTS } from '../constants/api';
 
 /**
  * Service Layer for Todo Operations
- * Implements SWR / Offline-First Fallback, bounded requests, and timeout protection.
+ * Implements SWR / Offline-First Fallback, JWT authorization, bounded requests, and timeout protection.
  */
 
 const REQUEST_TIMEOUT_MS = 6000;
@@ -19,7 +19,7 @@ let localTodos = [
   {
     id: 1,
     title: 'Design MySQL Database Schema',
-    description: 'PascalCase tables TodoStatuses and TodoItems with utf8mb4_0900_ai_ci collation and strict indexes.',
+    description: 'PascalCase tables TodoStatuses and TodoItems with utf8mb4_0900_ai_ci collation.',
     status_id: 3,
     status_code: 'completed',
     status_label: 'Completed',
@@ -30,7 +30,7 @@ let localTodos = [
   {
     id: 2,
     title: 'Build PHP 8 PDO REST API',
-    description: 'Prepared statements, input sanitization against XSS, and {"status": "success|error"} JSON envelope.',
+    description: 'Prepared statements, input sanitization against XSS, and JWT authentication.',
     status_id: 3,
     status_code: 'completed',
     status_label: 'Completed',
@@ -40,8 +40,8 @@ let localTodos = [
   },
   {
     id: 3,
-    title: 'Develop React Native Glassmorphic UI',
-    description: 'Build Header, StatusFilterBar, TodoCard (React.memo), and TodoModal for task management.',
+    title: 'Develop Google Tasks Minimalist UI',
+    description: 'Build GoogleTasksHeader, GoogleTaskItem, and responsive task management.',
     status_id: 2,
     status_code: 'in_progress',
     status_label: 'In Progress',
@@ -49,46 +49,27 @@ let localTodos = [
     due_date: '2026-10-30',
     created_at: '2026-10-28 14:00:00',
   },
-  {
-    id: 4,
-    title: 'Setup CI/CD Pipeline & Firebase App Distribution',
-    description: 'Automate Jest and PHPUnit testing, EAS APK build, and deployment to Firebase testers.',
-    status_id: 1,
-    status_code: 'pending',
-    status_label: 'Pending',
-    color_code: '#f59e0b',
-    due_date: '2026-11-02',
-    created_at: '2026-10-28 16:00:00',
-  },
-  {
-    id: 5,
-    title: 'Perform Maestro E2E Cloud Testing on BrowserStack',
-    description: 'Run automated user flow tests across real Android devices on BrowserStack cloud farm.',
-    status_id: 1,
-    status_code: 'pending',
-    status_label: 'Pending',
-    color_code: '#f59e0b',
-    due_date: '2026-11-05',
-    created_at: '2026-10-28 18:00:00',
-  },
 ];
 
-let nextLocalId = 6;
+let nextLocalId = 4;
 
 /**
- * Helper to fetch with timeout
+ * Helper to fetch with timeout and optional Bearer auth token
  */
-async function fetchWithTimeout(url, options = {}) {
+async function fetchWithTimeout(url, options = {}, token = null) {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
   try {
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Content-Type': 'application/json',
+        ...authHeaders,
         ...(options.headers || {}),
       },
     });
@@ -110,9 +91,9 @@ export const TodoService = {
   /**
    * Fetch all status lookups (with offline fallback)
    */
-  async getStatuses() {
+  async getStatuses(token = null) {
     try {
-      const data = await fetchWithTimeout(ENDPOINTS.STATUSES, { method: 'GET' });
+      const data = await fetchWithTimeout(ENDPOINTS.STATUSES, { method: 'GET' }, token);
       return data.statuses || DEFAULT_STATUSES;
     } catch {
       return DEFAULT_STATUSES;
@@ -122,7 +103,7 @@ export const TodoService = {
   /**
    * Fetch bounded paginated todos (with offline fallback)
    */
-  async getTodos({ page = 1, limit = 20, statusId = null, search = '' } = {}) {
+  async getTodos({ page = 1, limit = 20, statusId = null, search = '' } = {}, token = null) {
     try {
       const params = new URLSearchParams({
         page: String(page),
@@ -138,7 +119,7 @@ export const TodoService = {
       }
 
       const url = `${ENDPOINTS.TODOS}?${params.toString()}`;
-      const data = await fetchWithTimeout(url, { method: 'GET' });
+      const data = await fetchWithTimeout(url, { method: 'GET' }, token);
 
       return {
         todos: data.todos || [],
@@ -179,12 +160,16 @@ export const TodoService = {
   /**
    * Create a new todo
    */
-  async createTodo(payload) {
+  async createTodo(payload, token = null) {
     try {
-      const data = await fetchWithTimeout(ENDPOINTS.TODO_CREATE, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+      const data = await fetchWithTimeout(
+        ENDPOINTS.TODO_CREATE,
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        },
+        token
+      );
       return data.todo;
     } catch {
       // Local offline creation
@@ -199,7 +184,6 @@ export const TodoService = {
         color_code: status.color_code,
         due_date: payload.due_date || null,
         created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        is_deleted: 0,
       };
       localTodos.unshift(newTodo);
       return newTodo;
@@ -207,50 +191,63 @@ export const TodoService = {
   },
 
   /**
-   * Update existing todo
+   * Update an existing todo
    */
-  async updateTodo(id, payload) {
+  async updateTodo(id, payload, token = null) {
     try {
-      const data = await fetchWithTimeout(ENDPOINTS.TODO_UPDATE, {
-        method: 'POST',
-        body: JSON.stringify({ id, ...payload }),
-      });
+      const data = await fetchWithTimeout(
+        ENDPOINTS.TODO_UPDATE,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ id, ...payload }),
+        },
+        token
+      );
       return data.todo;
     } catch {
       // Local offline update
-      const idx = localTodos.findIndex((t) => t.id === id);
-      if (idx !== -1) {
-        const current = localTodos[idx];
-        const statusId = payload.status_id !== undefined ? payload.status_id : current.status_id;
-        const status = DEFAULT_STATUSES.find((s) => s.id === statusId) || DEFAULT_STATUSES[0];
-
-        localTodos[idx] = {
-          ...current,
-          ...payload,
-          status_id: status.id,
-          status_code: status.status_code,
-          status_label: status.status_label,
-          color_code: status.color_code,
-        };
-        return localTodos[idx];
+      const index = localTodos.findIndex((t) => t.id === id);
+      if (index === -1) {
+        throw new Error('Todo item not found in local offline storage.');
       }
-      throw new Error('Todo not found');
+      const existing = localTodos[index];
+      const status = payload.status_id
+        ? DEFAULT_STATUSES.find((s) => s.id === payload.status_id) || existing
+        : existing;
+
+      const updated = {
+        ...existing,
+        ...payload,
+        status_code: status.status_code || existing.status_code,
+        status_label: status.status_label || existing.status_label,
+        color_code: status.color_code || existing.color_code,
+        updated_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      };
+      localTodos[index] = updated;
+      return updated;
     }
   },
 
   /**
-   * Soft delete a todo
+   * Soft-delete a todo
    */
-  async deleteTodo(id) {
+  async deleteTodo(id, token = null) {
     try {
-      const data = await fetchWithTimeout(ENDPOINTS.TODO_DELETE, {
-        method: 'POST',
-        body: JSON.stringify({ id }),
-      });
+      const data = await fetchWithTimeout(
+        ENDPOINTS.TODO_DELETE,
+        {
+          method: 'DELETE',
+          body: JSON.stringify({ id }),
+        },
+        token
+      );
       return data;
     } catch {
-      // Local soft delete
-      localTodos = localTodos.filter((t) => t.id !== id);
+      // Local offline soft delete
+      const index = localTodos.findIndex((t) => t.id === id);
+      if (index !== -1) {
+        localTodos[index].is_deleted = 1;
+      }
       return { id, is_deleted: 1 };
     }
   },

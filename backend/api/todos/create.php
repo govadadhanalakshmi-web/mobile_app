@@ -12,6 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 try {
     $pdo = getDatabaseConnection();
+    $user = authenticateUser($pdo);
+    $userId = (int)$user['id'];
+
     $payload = getJsonPayload();
 
     $title = isset($payload['title']) ? trim((string)$payload['title']) : '';
@@ -28,7 +31,7 @@ try {
         sendError('Validation failed: Title exceeds 255 characters limit.', 422);
     }
 
-    // Verify status_id exists in lookup table (Rule 7: Lookup table integrity)
+    // Verify status_id exists in lookup table (Lookup table integrity)
     $statusCheckStmt = $pdo->prepare("SELECT id FROM TodoStatuses WHERE id = :status_id");
     $statusCheckStmt->execute([':status_id' => $statusId]);
     if (!$statusCheckStmt->fetch()) {
@@ -43,12 +46,14 @@ try {
         }
     }
 
-    // Prepared statement insert (Rule 8: Enterprise Security)
-    $insertSql = "INSERT INTO TodoItems (title, description, status_id, due_date, is_deleted, created_at, updated_at) 
-                  VALUES (:title, :description, :status_id, :due_date, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
+    // Prepared statement insert with user isolation
+    $startTime = microtime(true);
+    $insertSql = "INSERT INTO TodoItems (user_id, title, description, status_id, due_date, is_deleted, created_at, updated_at) 
+                  VALUES (:user_id, :title, :description, :status_id, :due_date, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
     
     $insertStmt = $pdo->prepare($insertSql);
     $insertStmt->execute([
+        ':user_id'     => $userId,
         ':title'       => $title,
         ':description' => $description,
         ':status_id'   => $statusId,
@@ -60,6 +65,7 @@ try {
     // Fetch newly created record with explicit columns and JOIN
     $fetchSql = "SELECT 
                     t.id,
+                    t.user_id,
                     t.title,
                     t.description,
                     t.status_id,
@@ -71,10 +77,15 @@ try {
                     t.updated_at
                  FROM TodoItems t
                  INNER JOIN TodoStatuses s ON t.status_id = s.id
-                 WHERE t.id = :id";
+                 WHERE t.id = :id AND t.user_id = :user_id";
     $fetchStmt = $pdo->prepare($fetchSql);
-    $fetchStmt->execute([':id' => $newId]);
+    $fetchStmt->execute([
+        ':id'      => $newId,
+        ':user_id' => $userId
+    ]);
     $newTodo = $fetchStmt->fetch();
+
+    logQueryPerf('TodoItems.create', (microtime(true) - $startTime) * 1000);
 
     sendSuccess('Todo created successfully', [
         'todo' => $newTodo
@@ -82,4 +93,3 @@ try {
 } catch (Throwable $e) {
     handleApiException($e, 'Failed to create todo item.');
 }
-

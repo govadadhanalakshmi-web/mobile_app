@@ -1,0 +1,39 @@
+appId: com.todomaster.app
+---
+# 1. Fresh Launch of Native App
+- stopApp
+- launchApp
+
+# 2. Verify Authentication Screen
+- assertVisible: "Tasks"
+
+# 3. Perform One-Tap Demo Sign-In (JWT Authentication)
+- tapOn:
+    text: "🚀 Quick Demo Sign-In"
+    optional: true
+- tapOn:
+    text: "Not now"
+    optional: true
+
+# 4. Verify Google Tasks Main Screen Loaded
+- assertVisible: "My Tasks"
+
+# 5. Open Create Task Bottom Sheet (+)
+- tapOn: "+"
+- assertVisible: "New Task"
+
+# 6. Enter Task Title & Save
+- tapOn: "Enter task title"
+- inputText: "Google Tasks Verified Task"
+- tapOn: "Save"
+
+# 7. Verify Task Visible in List
+- assertVisible: "Google Tasks Verified Task"
+
+# 8. Filter by Completed Tab
+- tapOn: "Completed"
+
+# 9. Return to My Tasks Tab
+- tapOn: "My Tasks"
+- assertVisible: "Google Tasks Verified Task"
+

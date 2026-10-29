@@ -12,6 +12,9 @@ if (!in_array($_SERVER['REQUEST_METHOD'], ['POST', 'PUT', 'PATCH'], true)) {
 
 try {
     $pdo = getDatabaseConnection();
+    $user = authenticateUser($pdo);
+    $userId = (int)$user['id'];
+
     $payload = getJsonPayload();
 
     $id = isset($payload['id']) ? (int)$payload['id'] : (isset($_GET['id']) ? (int)$_GET['id'] : 0);
@@ -19,16 +22,22 @@ try {
         sendError('Validation failed: A valid todo id is required.', 422);
     }
 
-    // Check if todo exists and is not soft-deleted
-    $checkStmt = $pdo->prepare("SELECT id, status_id FROM TodoItems WHERE id = :id AND is_deleted = 0");
-    $checkStmt->execute([':id' => $id]);
+    // Check if todo exists, belongs to user, and is not soft-deleted
+    $checkStmt = $pdo->prepare("SELECT id, status_id FROM TodoItems WHERE id = :id AND user_id = :user_id AND is_deleted = 0");
+    $checkStmt->execute([
+        ':id'      => $id,
+        ':user_id' => $userId
+    ]);
     $existing = $checkStmt->fetch();
     if (!$existing) {
         sendError('Todo item not found or has been deleted.', 404);
     }
 
     $updates = [];
-    $params = [':id' => $id];
+    $params = [
+        ':id'      => $id,
+        ':user_id' => $userId
+    ];
 
     if (isset($payload['title'])) {
         $title = trim((string)$payload['title']);
@@ -74,14 +83,16 @@ try {
         sendError('No fields provided to update.', 400);
     }
 
+    $startTime = microtime(true);
     $updates[] = 'updated_at = CURRENT_TIMESTAMP';
-    $updateSql = "UPDATE TodoItems SET " . implode(', ', $updates) . " WHERE id = :id AND is_deleted = 0";
+    $updateSql = "UPDATE TodoItems SET " . implode(', ', $updates) . " WHERE id = :id AND user_id = :user_id AND is_deleted = 0";
     $updateStmt = $pdo->prepare($updateSql);
     $updateStmt->execute($params);
 
     // Fetch updated record with JOIN
     $fetchSql = "SELECT 
                     t.id,
+                    t.user_id,
                     t.title,
                     t.description,
                     t.status_id,
@@ -93,10 +104,15 @@ try {
                     t.updated_at
                  FROM TodoItems t
                  INNER JOIN TodoStatuses s ON t.status_id = s.id
-                 WHERE t.id = :id";
+                 WHERE t.id = :id AND t.user_id = :user_id";
     $fetchStmt = $pdo->prepare($fetchSql);
-    $fetchStmt->execute([':id' => $id]);
+    $fetchStmt->execute([
+        ':id'      => $id,
+        ':user_id' => $userId
+    ]);
     $updatedTodo = $fetchStmt->fetch();
+
+    logQueryPerf('TodoItems.update', (microtime(true) - $startTime) * 1000);
 
     sendSuccess('Todo updated successfully', [
         'todo' => $updatedTodo
@@ -104,4 +120,3 @@ try {
 } catch (Throwable $e) {
     handleApiException($e, 'Failed to update todo item.');
 }
-
