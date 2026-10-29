@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo App API Explorer & Test Console</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #131b2e;
+      --surface-border: #23304e;
+      --primary: #6366f1;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 30px 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    header { margin-bottom: 30px; text-align: center; }
+    h1 { font-size: 28px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid var(--primary);
+      color: #a5b4fc;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.2s ease;
+    }
+    .card:hover { border-color: var(--primary); }
+    .method {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .get { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+    .post { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .endpoint { font-family: monospace; font-size: 13px; color: #cbd5e1; margin-bottom: 12px; word-break: break-all; }
+    button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover { opacity: 0.9; }
+    .console-box {
+      background: #000;
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 24px;
+    }
+    .console-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    pre {
+      background: #06090e;
+      color: #38bdf8;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      overflow-x: auto;
+      max-height: 350px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">PHP 8.1 & MySQL PDO REST API</span>
+      <h1 style="margin-top: 10px;">Backend API Test Console</h1>
+      <p style="color: var(--text-muted); font-size: 14px;">Test live endpoints and JSON response contracts interactively</p>
+    </header>
+
+    <div class="grid">
+      <!-- 1. Statuses -->
+      <div class="card">
+        <span class="method get">GET</span>
+        <div class="endpoint">/api/statuses/index.php</div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Fetch all status lookup masters</p>
+        <button onclick="testApi('/api/statuses/index.php', 'GET')">Execute Request</button>
+      </div>
+
+      <!-- 2. Todos List -->
+      <div class="card">
+        <span class="method get">GET</span>
+        <div class="endpoint">/api/todos/index.php?page=1&limit=5</div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Fetch paginated active todos (JOINed)</p>
+        <button onclick="testApi('/api/todos/index.php?page=1&limit=5', 'GET')">Execute Request</button>
+      </div>
+
+      <!-- 3. Create Todo -->
+      <div class="card">
+        <span class="method post">POST</span>
+        <div class="endpoint">/api/todos/create.php</div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Create new task (Prepared Insert)</p>
+        <button onclick="createSampleTodo()">Create Sample Task</button>
+      </div>
+
+      <!-- 4. Soft Delete Todo -->
+      <div class="card">
+        <span class="method post">POST</span>
+        <div class="endpoint">/api/todos/delete.php</div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Soft delete task (is_deleted = 1)</p>
+        <button onclick="softDeleteTodo()">Soft Delete Task #1</button>
+      </div>
+    </div>
+
+    <!-- Output Box -->
+    <div class="console-box">
+      <div class="console-header">
+        <strong style="font-size: 14px; color: #fff;">Response Console</strong>
+        <span id="httpStatus" style="font-size: 12px; color: var(--text-muted);">Ready</span>
+      </div>
+      <pre id="output">Click any 'Execute Request' button above to test the API.</pre>
+    </div>
+  </div>
+
+  <script>
+    async function testApi(url, method = 'GET', body = null) {
+      const output = document.getElementById('output');
+      const status = document.getElementById('httpStatus');
+      status.innerText = 'Calling ' + url + '...';
+      output.innerText = 'Loading...';
+
+      try {
+        const options = {
+          method,
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+        };
+        if (body) options.body = JSON.stringify(body);
+
+        const res = await fetch(url, options);
+        status.innerText = 'HTTP ' + res.status + ' ' + res.statusText;
+        const json = await res.json();
+        output.innerText = JSON.stringify(json, null, 2);
+      } catch (err) {
+        status.innerText = 'Network Error';
+        output.innerText = 'Error connecting to API: ' + err.message + '\nMake sure PHP server is running at http://localhost:8000';
+      }
+    }
+
+    function createSampleTodo() {
+      testApi('/api/todos/create.php', 'POST', {
+        title: 'Interactive Test Task (' + new Date().toLocaleTimeString() + ')',
+        description: 'Created from Backend API Explorer',
+        status_id: 2,
+        due_date: new Date().toISOString().split('T')[0]
+      });
+    }
+
+    function softDeleteTodo() {
+      testApi('/api/todos/delete.php', 'POST', { id: 1 });
+    }
+  </script>
+</body>
+</html>
+

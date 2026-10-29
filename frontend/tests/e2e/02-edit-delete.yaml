@@ -1,0 +1,35 @@
+# ==============================================================
+# Maestro E2E: Edit, Toggle Status & Delete Flow
+# ==============================================================
+
+appId: host.exp.exponent
+---
+- launchApp
+
+# 1. Test Status Cycle (Tap Status Pill)
+- tapOn:
+    text: "● IN PROGRESS"
+    index: 0
+- assertVisible: "● COMPLETED"
+
+# 2. Test Edit Modal
+- tapOn:
+    text: "✏️ Edit"
+    index: 0
+- assertVisible: "Edit Task"
+- tapOn: "TASK TITLE *"
+- eraseText: 50
+- inputText: "Updated Task Title via Maestro"
+- tapOn: "Save Changes"
+
+# 3. Verify Edited Title
+- assertVisible: "Updated Task Title via Maestro"
+
+# 4. Test Soft Delete
+- tapOn:
+    text: "🗑️ Delete"
+    index: 0
+- assertVisible: "Delete Task"
+- tapOn: "Delete" # Alert confirmation button
+- assertNotVisible: "Updated Task Title via Maestro"
+

@@ -1,0 +1,97 @@
+name: Mobile App CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # 1. Backend & Security Testing
+  backend-test:
+    name: Backend Unit & Contract Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.1
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, pdo, pdo_mysql, json
+
+      - name: Run Backend Unit Tests
+        run: php backend/tests/UnitTests.php
+
+  # 2. Frontend Unit Testing & Linting
+  frontend-test:
+    name: Frontend Lint & Jest Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package.json
+
+      - name: Install Dependencies
+        working-directory: ./frontend
+        run: npm ci || npm install
+
+      - name: Run Frontend Service Tests
+        working-directory: ./frontend
+        run: npm test
+
+  # 3. Build Standalone Android APK (via Expo EAS)
+  build-apk:
+    name: Build Android APK
+    needs: [backend-test, frontend-test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Expo EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci || npm install
+
+      # Note: Requires EXPO_TOKEN in GitHub Repository Secrets
+      # - name: Build Preview APK
+      #   working-directory: ./frontend
+      #   run: eas build -p android --profile preview --non-interactive
+      #   env:
+      #     EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+  # 4. Deploy to Firebase App Distribution
+  firebase-distribution:
+    name: Distribute to Firebase Testers
+    needs: [build-apk]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Note: Distribute built APK directly to internal testing team
+      # - name: Upload to Firebase App Distribution
+      #   uses: wzieba/Firebase-Distribution-Github-Action@v1
+      #   with:
+      #     appId: ${{ secrets.FIREBASE_APP_ID }}
+      #     serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      #     groups: qa-testers, dev-team
+      #     file: frontend/build/app-release.apk
+

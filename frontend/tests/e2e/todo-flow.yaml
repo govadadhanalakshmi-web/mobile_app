@@ -1,0 +1,44 @@
+# ==============================================================
+# Maestro End-to-End (E2E) Test Suite for Todo App
+# Documentation: https://maestro.mobile.dev/
+# To run on connected phone or emulator: maestro test todo-flow.yaml
+# ==============================================================
+
+appId: host.exp.exponent # Expo Go or your standalone app bundle ID
+---
+- launchApp
+
+# 1. Verify App Header & Initial Screen
+- assertVisible: "Tasks & Priorities"
+- assertVisible: "ALL TASKS"
+
+# 2. Open Create Task Modal
+- tapOn:
+    id: "fab-create-button" # Or tap on "+" icon
+
+# 3. Fill in Task Details
+- assertVisible: "Create New Task"
+- tapOn: "TASK TITLE *"
+- inputText: "Automated E2E Test Task"
+
+- tapOn: "DESCRIPTION (OPTIONAL)"
+- inputText: "Created automatically via Maestro E2E test pipeline."
+
+# 4. Select 'In Progress' Status
+- tapOn: "In Progress"
+
+# 5. Save the Task
+- tapOn: "Create Task"
+
+# 6. Verify Task Appears in the List
+- assertVisible: "Automated E2E Test Task"
+- assertVisible: "● IN PROGRESS"
+
+# 7. Filter by 'In Progress' Tab
+- tapOn: "In Progress"
+- assertVisible: "Automated E2E Test Task"
+
+# 8. Filter by 'Completed' Tab (Should not show active task)
+- tapOn: "Completed"
+- assertNotVisible: "Automated E2E Test Task"
+

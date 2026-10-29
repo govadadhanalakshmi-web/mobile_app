@@ -1,0 +1,12 @@
+# ==============================================================
+# Master Maestro E2E Regression Test Suite
+# Runs full end-to-end regression flow sequentially
+# Usage: maestro test frontend/tests/e2e/suite.yaml
+# ==============================================================
+
+appId: host.exp.exponent
+---
+- runFlow: todo-flow.yaml
+- runFlow: 02-edit-delete.yaml
+- runFlow: 03-theme-toggle.yaml
+

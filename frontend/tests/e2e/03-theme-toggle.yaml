@@ -1,0 +1,19 @@
+# ==============================================================
+# Maestro E2E: Theme Toggle Flow (Light <-> Dark Mode)
+# ==============================================================
+
+appId: host.exp.exponent
+---
+- launchApp
+
+# 1. Verify Default Light Theme Elements
+- assertVisible: "Tasks & Priorities"
+
+# 2. Toggle to Dark Theme
+- tapOn: "☀️" # Sun icon switches to Dark mode
+- assertVisible: "🌙" # Moon icon now visible in header
+
+# 3. Toggle back to Light Theme
+- tapOn: "🌙"
+- assertVisible: "☀️"
+
