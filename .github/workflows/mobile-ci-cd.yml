@@ -89,6 +89,9 @@ jobs:
     name: Build Signed Production Android APK
     needs: [backend-verification, frontend-verification]
     runs-on: ubuntu-latest
+    env:
+      _JAVA_OPTIONS: "-Xmx4096m"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m"
 
     steps:
       - name: Checkout Code
