@@ -1,26 +1,28 @@
 appId: com.android.chrome
 ---
-# 1. Close modal if currently open
+# 1. Close modal if left open
 - tapOn:
     text: "Cancel"
     optional: true
 
-# 2. Filter tabs navigation
-- tapOn: "Pending"
-- tapOn: "Completed"
-- tapOn: "All Tasks"
-
-# 3. Open modal to create a task
+# 2. Open Create Task modal
 - tapOn: "+"
 - assertVisible: "Create New Task"
 
-# 4. Tap title input and type new task
+# 3. Enter Task Title
 - tapOn:
     point: "50%, 57%"
-- inputText: "Maestro Automated Showcase Task"
+- inputText: "Maestro Verified Task"
 
-# 5. Tap Create Task button
+# 4. Hide keyboard
+- back
+
+# 5. Save Task
 - tapOn: "Create Task"
 
-# 6. Verify back on home screen
-- assertVisible: "Tasks & Priorities"
+# 6. Verify task appears on home screen
+- assertVisible: "Maestro Verified Task"
+
+# 7. Test Filter tabs
+- tapOn: "Pending"
+- tapOn: "In Progress"
