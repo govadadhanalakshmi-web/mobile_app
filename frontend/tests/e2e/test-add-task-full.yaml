@@ -1,0 +1,19 @@
+appId: com.android.chrome
+---
+# 1. Tap floating button to open modal
+- tapOn: "+"
+
+# 2. Tap inside the Task Title input field
+- tapOn:
+    point: "50%, 57%"
+
+# 3. Enter new task name
+- inputText: "Maestro Live Mobile Test"
+
+# 4. Save Task
+- tapOn: "Create Task"
+
+# 5. Tap on "Completed" tab and back to "All Tasks"
+- tapOn: "Completed"
+- tapOn: "All Tasks"
+

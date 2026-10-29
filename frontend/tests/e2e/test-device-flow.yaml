@@ -1,0 +1,10 @@
+# ==============================================================
+# Live Device Maestro E2E Test on Moto g64 5G
+# Opens Todo App in Chrome via reversed local port 8081
+# ==============================================================
+appId: com.android.chrome
+---
+- launchApp
+- openLink: "http://localhost:8081"
+- scroll
+

@@ -1,0 +1,10 @@
+appId: com.android.chrome
+---
+- tapOn: "In Progress"
+- tapOn: "Completed"
+- tapOn: "All Tasks"
+- tapOn: "+"
+- tapOn: "e.g., Design database schema"
+- inputText: "Maestro Live Test Task"
+- tapOn: "Create Task"
+

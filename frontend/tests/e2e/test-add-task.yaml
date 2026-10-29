@@ -1,0 +1,8 @@
+appId: com.android.chrome
+---
+- tapOn:
+    below: "TASK TITLE *"
+- inputText: "Maestro Live Mobile Test"
+- tapOn: "Create Task"
+- assertVisible: "Maestro Live Mobile Test"
+
