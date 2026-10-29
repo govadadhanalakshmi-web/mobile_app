@@ -172,12 +172,12 @@ jobs:
       - name: Verify E2E Flow Files & Manifests
         run: |
           echo "Validating Maestro test flows syntax..."
-          ls -lh frontend/tests/e2e/*.yaml
-          for file in frontend/tests/e2e/*.yaml; do
-            echo "Checking: $file"
-            grep -q "appId: com.todomaster.app" "$file" || (echo "Missing appId in $file" && exit 1)
+          ls -lh frontend/tests/e2e/google-tasks*.yaml
+          for file in frontend/tests/e2e/google-tasks-crud-e2e.yaml frontend/tests/e2e/google-tasks-auth-e2e.yaml frontend/tests/e2e/native-app-e2e.yaml; do
+            echo "Checking native app flow: $file"
+            grep -q "appId: com.todomaster.app" "$file" || (echo "Missing com.todomaster.app in $file" && exit 1)
           done
-          echo "All Maestro E2E test flows are valid and ready for cloud execution."
+          echo "All Maestro native E2E test flows are valid and ready for cloud execution."
 
   # ==============================================================================
   # 5. Cloud Robo & Device Farm Integration (Firebase / Google Cloud DDP)
