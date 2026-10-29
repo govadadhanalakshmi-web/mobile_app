@@ -1,0 +1,248 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "suite": "TodoMaster Google Tasks Production E2E & Multi-Device Testing Matrix",
+  "version": "1.0.0",
+  "application": {
+    "appId": "com.todomaster.app",
+    "versionName": "1.0.0",
+    "versionCode": 1,
+    "binaryType": "Standalone Signed Production Release APK",
+    "engine": "Hermes AOT Bytecode",
+    "signingScheme": "v1 (JAR) + v2 (APK Signature Scheme v2)",
+    "targetSdkVersion": 34,
+    "minSdkVersion": 23
+  },
+  "cloudPlatform": {
+    "provider": "Google Firebase Test Lab",
+    "recommendedPlan": "Spark Free Tier (5 Physical + 10 Virtual Devices/day) or Google Cloud DDP",
+    "testRunnerType": "Robo Script Guided Automated Crawler",
+    "roboScriptFile": "firebase-robo-script.json",
+    "targetDeviceMatrix": [
+      {
+        "deviceModel": "panther",
+        "deviceName": "Google Pixel 7",
+        "type": "Physical",
+        "apiLevel": 33,
+        "orientation": "portrait",
+        "locale": "en"
+      },
+      {
+        "deviceModel": "oriole",
+        "deviceName": "Google Pixel 6",
+        "type": "Physical",
+        "apiLevel": 31,
+        "orientation": "portrait",
+        "locale": "en"
+      },
+      {
+        "deviceModel": "dm3q",
+        "deviceName": "Samsung Galaxy S23",
+        "type": "Physical",
+        "apiLevel": 33,
+        "orientation": "portrait",
+        "locale": "en"
+      },
+      {
+        "deviceModel": "Pixel2",
+        "deviceName": "Google Pixel 2 (Virtual)",
+        "type": "Virtual Emulator",
+        "apiLevel": 30,
+        "orientation": "portrait",
+        "locale": "en"
+      }
+    ]
+  },
+  "performanceGuardrails": {
+    "frameBudgetMs": 16.6,
+    "targetFps": 60,
+    "maxIdleRamHeapMb": 65,
+    "maxRetainedMemoryLeakMb": 0,
+    "maxDbQueryLatencyMs": 20,
+    "maxActiveWakeLocks": 0
+  },
+  "testCases": [
+    {
+      "id": "TC_AUTH_001",
+      "category": "Authentication & Authorization",
+      "title": "Quick Demo One-Click Sign-In & JWT Session Initialization",
+      "priority": "P0 - Blocker",
+      "preconditions": [
+        "App is fresh launched on physical or virtual device",
+        "Device has valid network connectivity or localhost reverse forwarding"
+      ],
+      "steps": [
+        "Launch application com.todomaster.app",
+        "Locate Auth Screen container",
+        "Click on button '🚀 Quick Demo Sign-In'",
+        "Wait for asynchronous network auth handshake (me.php / login.php)"
+      ],
+      "expectedResult": "User is authenticated with valid JWT token; Auth modal closes; 'Tasks' header and 'My Tasks' tab bar become visible with zero UI clipping.",
+      "assertionRule": "assertVisible('Tasks') AND assertVisible('My Tasks')"
+    },
+    {
+      "id": "TC_AUTH_002",
+      "category": "Authentication & Security",
+      "title": "Multi-Tenant Data Isolation & Secure Password Storage",
+      "priority": "P0 - Blocker",
+      "preconditions": [
+        "Database is running with schema migration v1 applied (users and todos tables)",
+        "Backend password_hash() using BCRYPT is enabled"
+      ],
+      "steps": [
+        "Register User A (userA@test.com) and create task 'User A Private Secret'",
+        "Log out or switch account to User B (userB@test.com)",
+        "Fetch todos endpoint /api/todos/index.php"
+      ],
+      "expectedResult": "User B cannot view or modify User A's tasks; HTTP 200 returns exclusively User B's scoped rows; Passwords in database stored as $2y$10$... bcrypt hashes.",
+      "assertionRule": "response.todos.every(todo => todo.user_id === authenticated_user_id)"
+    },
+    {
+      "id": "TC_CRUD_001",
+      "category": "Task Management (Create)",
+      "title": "Minimalist Task Creation via Floating Action Button (+)",
+      "priority": "P0 - Blocker",
+      "preconditions": [
+        "User is authenticated on 'My Tasks' screen"
+      ],
+      "steps": [
+        "Tap Floating Action Button (+)",
+        "Verify 'New Task' bottom sheet opens smoothly within frame budget (< 16.6ms)",
+        "Input title 'Firebase Cloud Device Robo Test Task' into 'Enter task title'",
+        "Input details 'Automated verification of full lifecycle' into 'Add details'",
+        "Tap 'Save'"
+      ],
+      "expectedResult": "Bottom sheet dismisses; new task appears at the top of 'My Tasks' list with circular uncompleted checkbox '◯'; DB query latency < 20ms.",
+      "assertionRule": "assertVisible('Firebase Cloud Device Robo Test Task')"
+    },
+    {
+      "id": "TC_CRUD_002",
+      "category": "Task Management (Toggle)",
+      "title": "Complete Task via Circular Checkbox (◯ ➔ ●)",
+      "priority": "P0 - Blocker",
+      "preconditions": [
+        "Task 'Firebase Cloud Device Robo Test Task' exists in pending state"
+      ],
+      "steps": [
+        "Tap circular checkbox '◯' on task item",
+        "Verify optimistic UI update triggers instantly (0ms latency)",
+        "Verify strike-through animation executes within 8.33ms / 16.6ms frame budget",
+        "Wait for asynchronous PUT /api/todos/update.php (status_id = 2)"
+      ],
+      "expectedResult": "Task is marked completed, disappears from 'My Tasks' pending list, and counter increments in 'Completed' tab.",
+      "assertionRule": "assertNotVisible('Firebase Cloud Device Robo Test Task', scope='My Tasks')"
+    },
+    {
+      "id": "TC_CRUD_003",
+      "category": "Task Management (Filter)",
+      "title": "Completed Tab Filtering & Completed Task Retention",
+      "priority": "P1 - Critical",
+      "preconditions": [
+        "At least one task has been toggled to completed status"
+      ],
+      "steps": [
+        "Tap 'Completed' tab in the top tab navigator",
+        "Observe completed task list animation",
+        "Verify completed task shows filled circular checkbox '●' and strikethrough text"
+      ],
+      "expectedResult": "Completed tasks list renders accurately; 'Firebase Cloud Device Robo Test Task' is visible with status 2.",
+      "assertionRule": "assertVisible('Completed') AND assertVisible('Firebase Cloud Device Robo Test Task')"
+    },
+    {
+      "id": "TC_CRUD_004",
+      "category": "Task Management (Update)",
+      "title": "In-Place Task Title and Details Editing",
+      "priority": "P1 - Critical",
+      "preconditions": [
+        "Task exists in the active view"
+      ],
+      "steps": [
+        "Tap on task title 'Firebase Cloud Device Robo Test Task'",
+        "Verify 'Edit Task' modal/bottom sheet opens",
+        "Modify title to 'Firebase Cloud Device Robo Test Task (Edited)'",
+        "Tap 'Save'"
+      ],
+      "expectedResult": "Edit modal closes; updated title reflects immediately in the list; PUT /api/todos/update.php completes under 15ms.",
+      "assertionRule": "assertVisible('Firebase Cloud Device Robo Test Task (Edited)')"
+    },
+    {
+      "id": "TC_CRUD_005",
+      "category": "Task Management (Delete)",
+      "title": "Task Removal via Delete Action (✕)",
+      "priority": "P1 - Critical",
+      "preconditions": [
+        "Task exists in the active view"
+      ],
+      "steps": [
+        "Tap delete action icon '✕' (or 'Delete task')",
+        "Observe removal animation",
+        "Wait for DELETE /api/todos/delete.php execution"
+      ],
+      "expectedResult": "Task is permanently removed from the view and database; list re-renders smoothly with 0 jank.",
+      "assertionRule": "assertNotVisible('Firebase Cloud Device Robo Test Task (Edited)')"
+    },
+    {
+      "id": "TC_PERF_001",
+      "category": "Performance & Architecture",
+      "title": "UI Thread Tranquility & 60 FPS Frame Render Validation",
+      "priority": "P0 - Blocker",
+      "preconditions": [
+        "App running in Release mode with Hermes AOT bytecode engine enabled"
+      ],
+      "steps": [
+        "Record gfxinfo via adb shell dumpsys gfxinfo com.todomaster.app framestats",
+        "Perform 10 consecutive fast scroll actions up and down through 50 tasks",
+        "Calculate p50, p90, and p95 frame render times"
+      ],
+      "expectedResult": "p50 render time is <= 7 ms (< 16.6 ms budget); Janky frame percentage is < 1.0%; No UI freezes on main thread.",
+      "assertionRule": "gfxinfo.p50 <= 16.6ms AND jank_frames_percentage < 1.0%"
+    },
+    {
+      "id": "TC_PERF_002",
+      "category": "Performance & Memory Discipline",
+      "title": "RAM Heap Discipline & Zero Memory Leak Growth Validation",
+      "priority": "P0 - Blocker",
+      "preconditions": [
+        "App running in Release mode"
+      ],
+      "steps": [
+        "Record initial heap via adb shell dumpsys meminfo com.todomaster.app",
+        "Execute 10 complete cycles of modal open ➔ create ➔ edit ➔ close ➔ navigate tabs",
+        "Trigger system GC via dumpsys meminfo com.todomaster.app",
+        "Measure retained heap growth difference (Cycle 10 Heap - Baseline Heap)"
+      ],
+      "expectedResult": "Idle RAM Heap remains < 65 MB (baseline measured 43.5 MB); Retained leak growth is exactly 0 MB.",
+      "assertionRule": "retained_leak_growth_mb == 0 AND total_pss_mb < 65"
+    },
+    {
+      "id": "TC_PERF_003",
+      "category": "Performance & Battery Drain",
+      "title": "Zero WakeLock Leak & Power Consumption Compliance",
+      "priority": "P1 - Critical",
+      "preconditions": [
+        "App running on battery-powered physical device"
+      ],
+      "steps": [
+        "Inspect active wake locks via adb shell dumpsys power",
+        "Inspect app background CPU usage via dumpsys cpuinfo",
+        "Leave app backgrounded for 60 seconds"
+      ],
+      "expectedResult": "Active Wake Locks count is exactly 0; Idle CPU usage is < 0.001s; Zero battery drain.",
+      "assertionRule": "wake_locks.active_count == 0"
+    },
+    {
+      "id": "TC_ROBUST_001",
+      "category": "Robustness & Defensive Boundaries",
+      "title": "Graceful Network Fallback & Clear Error Boundary",
+      "priority": "P1 - Critical",
+      "preconditions": [
+        "Simulate airplane mode or severed server connection"
+      ],
+      "steps": [
+        "Attempt to create a task while offline",
+        "Observe UI behavior"
+      ],
+      "expectedResult": "App does not crash or show unhandled RedScreen; displays friendly non-blocking notification or caches operation gracefully.",
+      "assertionRule": "app_process_alive == true AND unhandled_exception_count == 0"
+    }
+  ]
+}

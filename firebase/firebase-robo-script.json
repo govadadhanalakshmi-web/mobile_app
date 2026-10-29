@@ -1,0 +1,146 @@
+[
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "className": "android.widget.TextView",
+        "text": "🚀 Quick Demo Sign-In"
+      },
+      {
+        "text": "Quick Demo Sign-In"
+      }
+    ]
+  },
+  {
+    "eventType": "DELAYED_MESSAGE_POSTED",
+    "delayTime": 2500
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "contentDescription": "Add task"
+      },
+      {
+        "text": "+"
+      }
+    ]
+  },
+  {
+    "eventType": "DELAYED_MESSAGE_POSTED",
+    "delayTime": 1000
+  },
+  {
+    "eventType": "VIEW_TEXT_CHANGED",
+    "replacementText": "Firebase Cloud Device Robo Test Task",
+    "elementDescriptors": [
+      {
+        "className": "android.widget.EditText",
+        "text": "Enter task title"
+      },
+      {
+        "className": "android.widget.EditText"
+      }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "className": "android.widget.TextView",
+        "text": "Save"
+      },
+      {
+        "text": "Save"
+      }
+    ]
+  },
+  {
+    "eventType": "DELAYED_MESSAGE_POSTED",
+    "delayTime": 2000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "contentDescription": "Mark task Firebase Cloud Device Robo Test Task as complete"
+      },
+      {
+        "text": "◯"
+      }
+    ]
+  },
+  {
+    "eventType": "DELAYED_MESSAGE_POSTED",
+    "delayTime": 1500
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "className": "android.widget.TextView",
+        "text": "Completed"
+      },
+      {
+        "text": "Completed"
+      }
+    ]
+  },
+  {
+    "eventType": "DELAYED_MESSAGE_POSTED",
+    "delayTime": 1500
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "className": "android.widget.TextView",
+        "text": "Firebase Cloud Device Robo Test Task"
+      }
+    ]
+  },
+  {
+    "eventType": "DELAYED_MESSAGE_POSTED",
+    "delayTime": 1000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "className": "android.widget.TextView",
+        "text": "Save"
+      }
+    ]
+  },
+  {
+    "eventType": "DELAYED_MESSAGE_POSTED",
+    "delayTime": 1500
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "contentDescription": "Delete task"
+      },
+      {
+        "text": "✕"
+      }
+    ]
+  },
+  {
+    "eventType": "DELAYED_MESSAGE_POSTED",
+    "delayTime": 1500
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      {
+        "className": "android.widget.TextView",
+        "text": "My Tasks"
+      },
+      {
+        "text": "My Tasks"
+      }
+    ]
+  }
+]
