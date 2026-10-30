@@ -1,0 +1,8 @@
+{
+  "app": "bs://11ac4f58e647e388d0360acd52474eda8de17e7d",
+  "testSuite": "bs://5907e3d0ccfd695ce44f632be6e22d9b50ea9ccd",
+  "devices": ["Samsung Galaxy S22-12.0"],
+  "execute": ["google-tasks-crud-e2e.yaml"],
+  "project": "TodoMaster Native Android",
+  "build": "Build-Offline-First-Verified"
+}

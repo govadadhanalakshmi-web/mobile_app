@@ -1,0 +1,71 @@
+appId: com.todomaster.app
+---
+# ==============================================================================
+# Google Tasks Complete CRUD E2E Test Flow
+# Create -> Complete (Toggle) -> Filter -> Edit -> Delete
+# ==============================================================================
+
+# 1. Launch Native App
+- stopApp
+- launchApp
+
+# 2. Check Auth Screen & Auto-Sign-In if needed
+- tapOn:
+    text: "🚀 Quick Demo Sign-In"
+    optional: true
+- tapOn:
+    text: "Not now"
+    optional: true
+
+# 3. Verify Google Tasks Header & Default Tab Loaded
+- assertVisible: "Tasks"
+- assertVisible: "My Tasks"
+
+# 4. [CREATE] Open Task Creation Modal (+)
+- tapOn: "+"
+- assertVisible: "New Task"
+
+# 5. [CREATE] Enter Task Details & Save
+- tapOn: "Enter task title"
+- inputText: "Complete CRUD Flow Test Task"
+- tapOn: "Add details"
+- inputText: "Automated verification of full lifecycle"
+- tapOn: "Save"
+
+# 6. [READ] Verify Newly Created Task is visible in My Tasks
+- assertVisible: "Complete CRUD Flow Test Task"
+
+# 7. [UPDATE - Complete] Toggle Circular Checkbox to mark as completed
+- tapOn: "Mark task Complete CRUD Flow Test Task as complete"
+
+# 8. [VERIFY] Switch to Completed tab and verify task is there
+- tapOn: "Completed"
+- assertVisible: "Complete CRUD Flow Test Task"
+
+# 9. [UPDATE - Edit] Tap on task to open Edit Modal
+- tapOn: "Complete CRUD Flow Test Task"
+- assertVisible: "Edit Task"
+
+# 10. [UPDATE - Edit] Modify Task Title & Save
+- eraseText: 60
+- inputText: "Complete CRUD Flow Test Task (Edited)"
+- tapOn: "Save"
+
+# 11. [VERIFY] Verify Edited Title is visible in Completed list
+- assertVisible: "Complete CRUD Flow Test Task (Edited)"
+
+# 12. [DELETE] Tap Delete (✕) on the task
+- tapOn:
+    text: "Delete task"
+    optional: true
+- tapOn:
+    text: "✕"
+    optional: true
+
+# 13. [VERIFY] Verify Task is deleted and no longer visible
+- assertNotVisible: "Complete CRUD Flow Test Task (Edited)"
+
+# 14. Return to My Tasks Tab
+- tapOn: "My Tasks"
+- assertVisible: "My Tasks"
+
